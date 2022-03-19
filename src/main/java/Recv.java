@@ -10,27 +10,30 @@ public class Recv {
     public static void main(String[] args) throws Exception {
         ConnectionFactory factory = new ConnectionFactory();
         factory.setHost("localhost");
+
         try{
         factory.setPort(5672);
         Connection connection = factory.newConnection();
         Channel channel = connection.createChannel();
 
-
-            channel.queueDeclare("TEST2",false,false,false,null );
+            channel.basicQos( 1 );
+            boolean durable = true;
+            channel.queueDeclare("TEST3",durable,false,false,null );
             DeliverCallback deliverCallback = (consumerTag, delivery) -> {
                 String message = new String(delivery.getBody(), "UTF-8");
+                System.out.println(" [x] Received '" + message + "'");
                 try {
                     doWork(message);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 } finally {
                     System.out.println(" [x] Done");
+                    channel.basicAck(delivery.getEnvelope().getDeliveryTag(), false );
                 }
-                System.out.println(" [x] Received '" + message + "'");
 
             };
-            boolean autoAck = true;
-            channel.basicConsume("TEST2", autoAck, deliverCallback, consumerTag -> { });
+            boolean autoAck = false;
+            channel.basicConsume("TEST3", autoAck, deliverCallback, consumerTag -> { });
 
         } catch (IOException e) {
             e.printStackTrace();
